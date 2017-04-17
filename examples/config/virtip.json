@@ -1,0 +1,5 @@
+{
+"virtualservers":[
+ {"ip":"192.168.0.1","servedir":"examples/data/192.168.0.1","port":80}
+]
+}
