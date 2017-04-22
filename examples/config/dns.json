@@ -1,0 +1,11 @@
+{
+"dns": {
+ "upstream":"8.8.8.8",
+ "redirection": {
+  "www.google.com":"www.example.com"
+ },
+ "resolve": {
+  "internal.host":"192.168.5.55"
+ }
+}
+}

@@ -54,6 +54,10 @@ in a separate script.
 
 	sudo python modules/virtservers.py -c examples/config/virtip.json -i lo
 
+Basic functionality for modifying and providing custom DNS responses also exist
+
+	sudo python3 modules/dns.py --ip 127.0.0.1 --port 53 --config examples/config/dns.json
+
 ## TODO
 
 1. Document the various features
