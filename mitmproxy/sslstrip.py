@@ -62,8 +62,9 @@ class SSLStrip:
 
 		# On 200 responses we need to ensure that we strip https:// links in the document
 		elif status_code == 200:
-			#flow.response.text = common.stripHttpsLinks(flow.response.text.decode("utf-8"))
-			flow.response.text = common.stripHttpsLinks(flow.response.text)
+			ctype = flow.response.headers["Content-Type"]
+			if ctype.find("html") != -1:
+				flow.response.raw_content = common.stripHttpsLinks(flow.response.content)
 			return
 
 def start():

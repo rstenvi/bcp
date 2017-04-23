@@ -61,5 +61,4 @@ Basic functionality for modifying and providing custom DNS responses also exist
 ## TODO
 
 1. Document the various features
-2. Implement appcache support - need to create wrapper around existing functionality
 

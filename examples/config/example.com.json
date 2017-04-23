@@ -1,6 +1,6 @@
 {
 "inject":[
-{
+ {
   "domain":"(www\\.)?example.com", "path":"^/$",
   "data":"\n<script>console.log(document.domain)</script>",
   "placement":{"tag":"head","action":"insert", "where":"first"}

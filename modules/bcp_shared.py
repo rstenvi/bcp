@@ -6,16 +6,23 @@ try:
 except ImportError:
 	from mitmproxy.http import HTTPResponse
 
+#from pprint import pprint
 
 class Config:
 	def __init__(self):
 		self.initialized = False
 		self.config = {}
+
+		# Content type is handled separately
 		self.defaultHeaders = [
-			("Content-Type","text/html"),
 			("Cache-Control", "public, max-age=31536000"),
 			("Expires", "Mon Dec  31 23:59:59 CET 2030")
 		]
+
+		self.endings = {
+			"js":"text/javascript",
+			"html":"text/html"
+		}
 
 	def has_initialized(self):
 		return self.initialized
@@ -26,8 +33,18 @@ class Config:
 			self.config = json.loads(data)
 		self.normalize()
 
+	def get_content_type(self, ending):
+		return self.endings.get(ending, None)
+
 	def normalize_one(self, c):
+		# Get content type if it has been set
+		Type = c.get("content-type", None)
+
 		if c.get("data", "").startswith("file://"):
+
+			# Try and set content type
+			if Type == None:	Type = self.get_content_type(c.get("data").split(".")[-1])
+
 			File = c["data"][7:]
 			if File.startswith("/") == False:
 				File = os.getcwd() + "/" + File
@@ -39,11 +56,14 @@ class Config:
 		# If headers exist we must convert them to tuples
 		h = c.get("headers", None)
 		if h == None:
-			c["headers"] = self.defaultHeaders
+			c["headers"] = []
+			for i in self.defaultHeaders:
+				c["headers"].append(i)
 		else:
 			c["headers"] = []
 			for hh in h:
 				c["headers"].append( (str(hh.keys()[0]), str(hh[hh.keys()[0]])))
+
 			# If a specific header doesn't exist in the json, we add the default
 			for i in self.defaultHeaders:
 				exist = False
@@ -54,8 +74,12 @@ class Config:
 				if exist == False:
 					c["headers"].append( i )
 
-		if c.get("content-type", None) == None:
-			c["content-type"] = "html"
+		if Type == None:	c["content-type"] = self.endings.get("html")
+		else:				c["content-type"] = Type
+
+
+		c["headers"].append( ("Content-Type", c["content-type"]) )
+
 		return c
 	
 	def normalize(self):
@@ -72,9 +96,33 @@ class Config:
 				"domain":iframe["domain"],
 				"path":"^/$",
 				"data":"<iframe src='http://" + iframe["url"] + "/' frameborder=0, height=0, width=0></iframe>",
+				"content-type":"text/html",
 				"placement":{"tag":"body","action":"insert", "where":"first"}
 			}
-			newc["inject"].append(ins)
+			newc["inject"].append( self.normalize_one(ins) )
+
+		for appcache in self.config.get("appcache", []):
+			data = "CACHE MANIFEST\n\nCACHE:\n"
+			for f in appcache.get("files", []):
+				data += f + "\n"
+			ins = {
+				"domain":appcache["domain"],
+				"path":appcache["path"],
+				"data":appcache["rpath"],
+				"placement":{"tag":"html","action":"attribute","where":"manifest"}
+			}
+			if "serve" not in newc:	newc["serve"] = []
+			serve = {
+				"domain":appcache["domain"],
+				"path":appcache["rpath"],
+				"data":data,
+				"content-type":"text/cache-manifest"
+			}
+
+			# Might need to normalize data
+			newc["serve"].append( self.normalize_one(serve) )
+
+			newc["inject"].append( ins )
 
 		for c in newc.get("inject", []):
 			if c.get("data", "").startswith("file://"):
@@ -85,10 +133,6 @@ class Config:
 					c["data"] = f.read()
 			if c.get("request", None) == None:
 				c["request"] = False
-			if c.get("headers", None) == None:
-				c["headers"] = self.defaultHeaders
-			if c.get("content-type", None) == None:
-				c["content-type"] = "html"
 		self.config = newc
 
 
@@ -106,7 +150,20 @@ class Config:
 
 
 def stripHttpsLinks(content):
-	return content.replace("https://", "http://")
+	return content.decode().replace("https://", "http://")
+
+
+def dict2headers(d):
+	h = list(d.items())
+	headers = []
+	for i in h:
+		headers.append( ( i[0].encode(), i[1].encode()) )
+	return headers
+def list2headers(h):
+	headers = []
+	for i in h:
+		headers.append( ( i[0].encode(), i[1].encode()) )
+	return headers
 
 
 def requests2mitmproxy(resp):
@@ -130,7 +187,7 @@ def requests2mitmproxy(resp):
 
 	r = HTTPResponse.make(
 		200,
-		stripHttpsLinks(resp.text),
+		stripHttpsLinks(resp.content),
 		headers
 	)
 	return r
