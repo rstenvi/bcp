@@ -44,6 +44,12 @@ def startVirtServers(data, interface):
 	except:
 		for p in procs:
 			p.terminate()
+
+		# Shut down the interfaces
+		i=0
+		for e in data.get("virtualservers", []):
+			subprocess.call("ifconfig " + interface + ":" + str(i) + " down", shell=True)
+
 		sys.exit(0)
 
 

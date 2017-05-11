@@ -1,4 +1,4 @@
 
 modules/__pycache__/
 *.bak
-
+*.pyc
