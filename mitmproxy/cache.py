@@ -2,8 +2,8 @@
 
 class setCache:
 	def response(self, flow):
-		# We only care about 200 responses
-		if flow.response.status_code != 200:	return
+		code = flow.response.status_code
+		if code != 200 and code != 301 and code != 302:	return
 
 		flow.response.headers["Cache-Control"] = "public, max-age=31536000"
 		flow.response.headers["Expires"] = "Mon Dec  31 23:59:59 CET 2030"
